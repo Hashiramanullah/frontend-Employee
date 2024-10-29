@@ -1,35 +1,66 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useContext, useEffect, useState } from 'react';
+import Login from './components/Auth/Login';
+import EmployeeDashboard from './components/Dashboard/EmployeeDashboard';
+import AdminDashboard from './components/Dashboard/AdminDashboard';
+import { useTheme } from './components/context/ThemeContext';
+import { getLocalStorage, setLocalStorage } from './components/utils/localStorage';
+import { AuthContext } from './components/context/AuthProvider';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+    const { theme, toggelTheme } = useTheme();
+    const [user, setUser] = useState(null);
+    const [loggedInUserData, setLoggedInUserData] = useState(null);
+    const authData = useContext(AuthContext);
+    const [employee, setEmployee] = useState(null);
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    useEffect(() => {
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        if (loggedInUser) {
+            const userData = JSON.parse(loggedInUser);
+            setUser(userData.role);
+            setLoggedInUserData(userData.data);
+            console.log(userData.data);
+        }
+    }, []);
 
-export default App
+    useEffect(() => {
+        const getDataFromLocalS = () => {
+            const employeeData = localStorage.getItem('employee');
+            if (employeeData) {
+                const genEmployeeData = JSON.parse(employeeData);
+                setEmployee(genEmployeeData);
+                console.log(genEmployeeData);
+            }
+        };
+        getDataFromLocalS();
+    }, []);
+
+    const handleLogin = (email, password) => {
+        if (email === 'admin@gmail.com' && password === '123') {
+            localStorage.setItem('loggedInUser', JSON.stringify({ role: 'admin' }));
+            setUser('admin');
+        } else if (authData) {
+            const employee = authData.EmployeeData.find((e) => email === e.email && password === e.password);
+            if (employee) {
+                localStorage.setItem('loggedInUser', JSON.stringify({ role: 'employee', data: employee }));
+                setLoggedInUserData(employee);
+                setUser('employee');
+            }
+        } else {
+            alert('Invalid credentials');
+        }
+    };
+
+    return (
+        <div className={`${theme === 'light' ? 'bg-slate-200 text-black' : 'body'} h-screen w-full`}>
+            {!user ? <Login handleLogin={handleLogin} /> : ''}
+            {user === 'admin' ? (
+                <AdminDashboard changeUser={setUser} />
+            ) : (
+                <EmployeeDashboard changeUser={setUser} user={user} employeeData={loggedInUserData}  />
+            )}
+        </div>
+    );
+};
+
+export default App;
